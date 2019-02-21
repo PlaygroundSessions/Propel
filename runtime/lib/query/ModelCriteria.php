@@ -512,7 +512,7 @@ class ModelCriteria extends Criteria
      */
     public function select($columnArray)
     {
-        if (!count($columnArray) || $columnArray == '') {
+        if ((is_string($columnArray) && strlen($columnArray) < 1) || (!is_string($columnArray) && !count($columnArray))) {
             throw new PropelException('You must ask for at least one column');
         }
 

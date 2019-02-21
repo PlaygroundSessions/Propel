@@ -136,7 +136,8 @@ class ModelCriteriaSelectTest extends BookstoreTestBase
         $c->where('Author.FirstName = ?', 'Neal');
         $c->select('FirstName');
         $author = $c->findOne($this->con);
-        $this->assertEquals(count($author), 1, 'findOne() called after select(string) allows for where() statements');
+        $this->assertTrue(!is_null($author), 'findOne() called after select(string) allows for where() statements');
+        $this->assertGreaterThan(0, strlen($author), 'findOne() called after select(string) allows for where() statements');
         $expectedSQL = "SELECT author.first_name AS \"FirstName\" FROM `author` WHERE author.first_name = 'Neal' LIMIT 1";
         $this->assertEquals($expectedSQL, $this->con->getLastExecutedQuery(), 'findOne() called after select(string) allows for where() statements');
     }
@@ -167,7 +168,8 @@ class ModelCriteriaSelectTest extends BookstoreTestBase
         $c->where('Author.FirstName = ?', 'Neal');
         $c->select('Title');
         $title = $c->findOne($this->con);
-        $this->assertEquals(count($title), 1, 'findOne() called after select(string) allows for join() statements');
+        $this->assertTrue(!is_null($title), 'findOne() called after select(string) allows for join() statements');
+        $this->assertGreaterThan(0, strlen($title), 'findOne() called after select(string) allows for join() statements');
         $expectedSQL = "SELECT book.title AS \"Title\" FROM `book` INNER JOIN `author` ON (book.author_id=author.id) WHERE author.first_name = 'Neal' LIMIT 1";
         $this->assertEquals($expectedSQL, $this->con->getLastExecutedQuery(), 'findOne() called after select(string) allows for where() statements');
 
