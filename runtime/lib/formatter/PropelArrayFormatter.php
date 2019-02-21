@@ -35,11 +35,23 @@ class PropelArrayFormatter extends PropelFormatter
         if ($this->isWithOneToMany() && $this->hasLimit) {
             throw new PropelException('Cannot use limit() in conjunction with with() on a one-to-many relationship. Please remove the with() call, or the limit() call.');
         }
+
+        $mainKeys = [];
+
         while ($row = $stmt->fetch(PDO::FETCH_NUM)) {
-            if ($object = &$this->getStructuredArrayFromRow($row)) {
-                $collection[] = $object;
+            $mainKey = $this->getMainKey($row);
+
+            if (!isset($mainKeys[$mainKey])) {
+                $mainKeys[$mainKey] = $mainKey;
             }
+
+            $this->getStructuredArrayFromRow($row);
         }
+
+        foreach ($mainKeys as $mainKey) {
+            $collection[] = $this->alreadyHydratedObjects[$this->class][$mainKey];
+        }
+
         $this->currentObjects = array();
         $this->alreadyHydratedObjects = array();
         $stmt->closeCursor();
@@ -51,11 +63,18 @@ class PropelArrayFormatter extends PropelFormatter
     {
         $this->checkInit();
         $result = null;
+        $mainKey = null;
+
         while ($row = $stmt->fetch(PDO::FETCH_NUM)) {
-            if ($object = &$this->getStructuredArrayFromRow($row)) {
-                $result = &$object;
+            if (!$mainKey) {
+                $mainKey = $this->getMainKey($row);
             }
+
+            $this->getStructuredArrayFromRow($row);
         }
+
+        $result = (is_null($mainKey)) ? null : $this->alreadyHydratedObjects[$this->class][$mainKey];
+
         $this->currentObjects = array();
         $this->alreadyHydratedObjects = array();
         $stmt->closeCursor();
@@ -80,6 +99,11 @@ class PropelArrayFormatter extends PropelFormatter
         return false;
     }
 
+    public function getMainKey($row)
+    {
+        return call_user_func(array($this->peer, 'getPrimaryKeyHashFromRow'), $row);
+    }
+
     /**
      * Hydrates a series of objects from a result row
      * The first object to hydrate is the model of the Criteria
@@ -90,13 +114,13 @@ class PropelArrayFormatter extends PropelFormatter
      *
      * @return Array
      */
-    public function &getStructuredArrayFromRow($row)
+    public function getStructuredArrayFromRow($row)
     {
         $col = 0;
 
         // hydrate main object or take it from registry
         $mainObjectIsNew = false;
-        $mainKey = call_user_func(array($this->peer, 'getPrimaryKeyHashFromRow'), $row);
+        $mainKey = $this->getMainKey($row);
         // we hydrate the main object even in case of a one-to-many relationship
         // in order to get the $col variable increased anyway
         $obj = $this->getSingleObjectFromRow($row, $this->class, $col);
@@ -157,13 +181,6 @@ class PropelArrayFormatter extends PropelFormatter
         foreach ($this->getAsColumns() as $alias => $clause) {
             $this->alreadyHydratedObjects[$this->class][$mainKey][$alias] = $row[$col];
             $col++;
-        }
-
-        if ($mainObjectIsNew) {
-            return $this->alreadyHydratedObjects[$this->class][$mainKey];
-        } else {
-            // we still need to return a reference to something to avoid a warning
-            return $emptyVariable;
         }
     }
 
