@@ -1444,6 +1444,19 @@ class Criteria implements IteratorAggregate
     }
 
     /**
+     * Returns the current query as SQL statement (request is executed on database)
+     *
+     * @return string
+     */
+    public function toRawSql()
+    {
+        return (clone $this)
+            ->setFormatter('PropelStatementFormatter')
+            ->find()
+            ->queryString;
+    }
+
+    /**
      * Returns the size (count) of this criteria.
      * @return int
      */
